@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# chkconfig: 345 85 02
+# description: codemux startup script
+#
+
+PROC=codemux
+
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+
+pidfile=/var/run/$PROC.pid
+
+check_status() {
+    pid=`cat $pidfile 2>/dev/null`
+    #
+    # this eliminates a race condition between checking existence of pidfile
+    # and reading its value
+    #
+    [ -n "$pid" -a -d /proc/$pid ]
+}
+
+case "$1" in
+    start)
+        echo -n "starting $PROC:"
+        pid=`cat $pidfile 2>/dev/null`
+        if [ -n "$pid" ]; then
+            # check whether process really exists
+            # yes - don't try to start
+            [ -d /proc/$pid ] && action "already running" /bin/true && exit 1
+
+            # no - PID file is stale
+            rm -f $pidfile
+        fi
+
+        initlog -c /usr/local/planetlab/sbin/codemux
+
+        cmd=success
+        check_status && touch /var/lock/subsys/$PROC || cmd=failure
+        $cmd "$PROC startup"
+        echo
+        ;;
+
+    stop)
+        echo -n "shutting down $PROC: "
+        killproc $PROC
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/$PROC
+        ;;
+
+    restart|reload)
+        $0 stop
+        $0 start
+        RETVAL=$?
+        ;;
+
+    status)
+        check_status && echo 'running' && exit 0 || \
+            echo 'not running' && exit 1
+        ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        RETVAL=1
+esac
+
+exit $RETVAL
