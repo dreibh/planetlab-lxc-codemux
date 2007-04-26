@@ -1,7 +1,6 @@
 #ifndef _DEBUG_H_
 #define _DEBUG_H_
 #include <stdio.h>
-#include "applib.h"
 #undef max
 
 
@@ -13,8 +12,8 @@
 
 #define DEBUG
 
-extern HANDLE hdebugLog;
-extern int defaultTraceSync;
+// extern HANDLE hdebugLog;
+// extern int defaultTraceSync;
 #define TRACE0(fmt, msg...) {                                             \
        char __buf[2048];                                                  \
        if (hdebugLog) {                                                   \

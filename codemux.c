@@ -12,7 +12,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include "applib.h"
+#include <string.h>
+#include "codemuxlib.h"
 
 #define CONF_FILE "/etc/codemux/codemux.conf"
 #define DEMUX_PORT 80
@@ -85,7 +86,7 @@ static int numNeedingHeaders;	/* how many conns waiting on headers? */
 
 static int numForks;
 
-HANDLE hdebugLog;
+//HANDLE hdebugLog;
 
 #ifndef SO_SETXID
 #define SO_SETXID SO_PEERCRED

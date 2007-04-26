@@ -1,6 +1,6 @@
 Summary: CoDemux - HTTP port demultiplexer
 Name: codemux
-Version: 0.5
+Version: 0.4
 Release: 1
 License: Private
 Group: System Environment/Base
@@ -21,17 +21,13 @@ make
 %install
 rm -rf $RPM_BUILD_ROOT
 
-make INSTALL_ROOT=$RPM_BUILD_ROOT install-all
-
-# Build and install in %post so that it gets put in the right site-packages directory
-#rm -rf $RPM_BUILD_ROOT/usr/lib/python*
-#install -D -m 755 python/Proper.py $RPM_BUILD_ROOT/%{_datadir}/%{name}/Proper.py
+make install
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %files
-%defattr(-,root,root,-)
+%defattr(0644,root,root,)
 %attr(0755,root,root) %{_initrddir}/codemux
 %config /etc/codemux/codemux.conf
 %attr(0755,root,root) /usr/local/planetlab/sbin/codemux
