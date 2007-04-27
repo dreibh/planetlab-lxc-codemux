@@ -1,6 +1,6 @@
 %define name proper
 %define version 0.1
-%define release 3%{?pldistro:.%{pldistro}}%{?date:.%{date}}
+%define release 4%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
 Summary: CoDemux - HTTP port DeMux
 Name: codemux
@@ -44,16 +44,15 @@ if [ -z "$PL_BOOTCD" ]; then
 fi
 
 %preun
-#if [ "$1" = 0 ]; then
+if [ "$1" = 0 ]; then
     # erase, not upgrade
-#    chkconfig --del codemux
+    chkconfig --del codemux
 
     # stop daemon if its currently running
-#    if [ "`/etc/init.d/codemux status`" = "running" ]; then
-#	/etc/init.d/codemux stop
-#    fi
-#fi
-# %doc
+    if [ "`/etc/init.d/codemux status`" = "running" ]; then
+	/etc/init.d/codemux stop
+    fi
+fi
 
 %changelog
 * Sun Apr 22 2007 KYOUNGSOO PARK <kyoungso@park.cs.princeton.edu> - 
