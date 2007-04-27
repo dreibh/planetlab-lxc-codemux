@@ -17,7 +17,7 @@
 
 #define CONF_FILE "/etc/codemux/codemux.conf"
 #define DEMUX_PORT 80
-#define REAL_WEBSERVER_CONFLINE "* root 1080"
+#define PIDFILE "/var/run/codemux.pid"
 #define TARG_SETSIZE 4096
 
 /* set aside some small number of fds for us, allow the rest for
@@ -85,8 +85,6 @@ static int highestSetFd;
 static int numNeedingHeaders;	/* how many conns waiting on headers? */
 
 static int numForks;
-
-//HANDLE hdebugLog;
 
 #ifndef SO_SETXID
 #define SO_SETXID SO_PEERCRED
@@ -281,14 +279,9 @@ ReadConfFile(void)
     int port;
     if (line != NULL)
       free(line);
-
-    /* on the first pass, put in a fake entry for apache */
-    if (num == 0)
-      line = strdup(REAL_WEBSERVER_CONFLINE);
-    else {
-      if ((line = GetNextLine(f)) == NULL)
-	break;
-    }
+    
+    if ((line = GetNextLine(f)) == NULL)
+      break;
 
     memset(&serv, 0, sizeof(serv));
     if (WordCount(line) != 3) {
@@ -303,6 +296,13 @@ ReadConfFile(void)
 
     serv.ss_host = GetWord(line, 0);
     serv.ss_slice = GetWord(line, 1);
+
+    if (num == 0 && /* the first row must be an entry for apache */
+	(strcmp(serv.ss_host, "*") != 0 ||
+	 strcmp(serv.ss_slice, "root") != 0)) {
+      fprintf(stderr, "first row has to be for webserver\n");
+      exit(-1);
+    }
     if (num >= numAlloc) {
       numAlloc = MAX(numAlloc * 2, 8);
       servs = realloc(servs, numAlloc * sizeof(ServiceSig));
@@ -725,10 +725,10 @@ SocketReadyToRead(int fd)
       return;
     }
 
-    printf("trying to find service\n");
+    //    printf("trying to find service\n");
     if (FindService(fb, &whichService, si->si_cliAddr) != SUCCESS)
       return;
-    printf("found service %d\n", whichService);
+    //    printf("found service %d\n", whichService);
     slice = ServiceToSlice(whichService);
 
     /* no service can have more than some absolute max number of
@@ -743,10 +743,15 @@ SocketReadyToRead(int fd)
     }
 
     if (slice->si_xid > 0) {
+      static int first = 1;
       setsockopt(fd, SOL_SOCKET, SO_SETXID, 
 		 &slice->si_xid, sizeof(slice->si_xid));
-      fprintf(stderr, "setsockopt() with XID = %d name = %s\n", 
-	      slice->si_xid, slice->si_sliceName);
+      if (first) {
+	/* just to log it for once */
+	fprintf(stderr, "setsockopt() with XID = %d name = %s\n", 
+		slice->si_xid, slice->si_sliceName);
+	first = 0;
+      }
     }
 
     si->si_needsHeaderSince = 0;
@@ -917,16 +922,108 @@ MainLoop(int lisSock)
   }
 }
 /*-----------------------------------------------------------------*/
+static int 
+InitDaemon(void)
+{
+  pid_t pid;
+  FILE *pidfile;
+  
+  pidfile = fopen(PIDFILE, "w");
+  if (pidfile == NULL) {
+    fprintf(stderr, "%s creation failed\n", PIDFILE);
+    return(-1);
+  }
+
+  if ((pid = fork()) < 0) {
+    fclose(pidfile);
+    return(-1);
+  }
+  else if (pid != 0) {
+    /* i'm the parent, writing down the child pid  */
+    fprintf(pidfile, "%u\n", pid);
+    fclose(pidfile);
+    exit(0);
+  }
+
+  /* close the pid file */
+  fclose(pidfile);
+
+  /* routines for any daemon process
+     1. create a new session 
+     2. change directory to the root
+     3. change the file creation permission 
+  */
+  setsid();
+  chdir("/");
+  umask(0);
+
+  return(0);
+}
+/*-----------------------------------------------------------------*/
+static int
+OpenLogFile(void)
+{
+  static const char* logfile = "/var/log/codemux.log";
+  static const char* oldlogfile = "/var/log/codemux.log.old";
+  int logfd;
+
+  /* if the previous log file exists,
+     rename it to the oldlogfile */
+  if (access(logfile, F_OK) == 0) {
+    if (rename(logfile, oldlogfile) < 0) {
+      fprintf(stderr, "cannot rotate the logfile err=%s\n",
+	      strerror(errno));
+      exit(-1);
+    }
+  }
+
+  logfd = open(logfile, O_WRONLY | O_APPEND | O_CREAT, 0600);
+  if (logfd < 0) {
+    fprintf(stderr, "cannot open the logfile err=%s\n",
+	    strerror(errno));
+    exit(-1);
+  }
+
+  /* duplicate logfile to stderr */
+  if (dup2(logfd, STDERR_FILENO) != STDERR_FILENO) {
+    fprintf(stderr, "cannot open the logfile err=%s\n",
+	    strerror(errno));
+    exit(-1);
+  }
+  
+  /* set the close-on-exec flag */
+  if (fcntl(STDERR_FILENO, F_SETFD, 1) != 0) {
+    fprintf(stderr, "fcntl to set the close-on-exec flag failed err=%s\n",
+	    strerror(errno));
+    exit(-1);
+  }
+
+  return logfd;
+}
+/*-----------------------------------------------------------------*/
 int
 main(int argc, char *argv[])
 {
   int lisSock;
+  int logFd;
 
+  /* do the daemon stuff */
+  if (argc <= 1 || strcmp(argv[1], "-d") != 0) {
+    if (InitDaemon() < 0) {
+      fprintf(stderr, "codemux daemon_init() failed\n");
+      exit(-1);
+    }
+  }
+
+  /* create the accept socket */
   if ((lisSock = CreatePrivateAcceptSocket(DEMUX_PORT, TRUE)) < 0) {
     fprintf(stderr, "failed creating accept socket\n");
     exit(-1);
   }
   SetFd(lisSock, &masterReadSet);
+
+  /* open the log file */
+  logFd = OpenLogFile();
 
   while (1) {
     numForks++;

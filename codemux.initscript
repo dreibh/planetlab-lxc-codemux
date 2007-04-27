@@ -45,6 +45,7 @@ case "$1" in
     stop)
         echo -n "shutting down $PROC: "
         killproc $PROC
+        killproc $PROC
         RETVAL=$?
         echo
         [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/$PROC
