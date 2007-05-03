@@ -1,4 +1,4 @@
-%define name proper
+%define name codemux 
 %define version 0.1
 %define release 4%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
