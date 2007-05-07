@@ -3,16 +3,22 @@
 %define release 4%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
 Summary: CoDemux - HTTP port DeMux
-Name: codemux
+Name: %{name} 
 Version: %{version}
 Release: %{release}
 License: Private
 Group: System Environment/Base
+Source: %{name}-%{version}.tar.gz
+Vendor: PlanetLab
+Packager: PlanetLab Central <support@planet-lab.org>
+Distribution: PlanetLab 3.0
 URL: http://codeen.cs.princeton.edu/
-Source0: %{name}-%{version}.tar.gz
-BuildRoot: %{_tmppath}/%{name}-buildroot
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+Requires: vnet
 
 %description
+codemux is a privileged port (80) sharing service that passes traffic to and from slices via localhost ports.
+
 
 %prep
 %setup -q
