@@ -34,7 +34,7 @@ case "$1" in
             rm -f $pidfile
         fi
 
-        initlog -c /usr/local/planetlab/sbin/codemux
+        initlog -c /usr/sbin/codemux
 
         cmd=success
         check_status && touch /var/lock/subsys/$PROC || cmd=failure

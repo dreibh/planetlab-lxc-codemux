@@ -1,6 +1,6 @@
 %define name codemux 
 %define version 0.1
-%define release 4%{?pldistro:.%{pldistro}}%{?date:.%{date}}
+%define release 5%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
 Summary: CoDemux - HTTP port DeMux
 Name: %{name} 
@@ -40,7 +40,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(0644,root,root)
 %attr(0755,root,root) %{_initrddir}/codemux
 %config /etc/codemux/codemux.conf
-%attr(0755,root,root) /usr/local/planetlab/sbin/codemux
+%attr(0755,root,root) /usr/sbin/codemux
 
 %post
 chkconfig codemux reset
