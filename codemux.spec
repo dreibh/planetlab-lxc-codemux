@@ -1,6 +1,6 @@
 %define name codemux 
 %define version 0.1
-%define release 5%{?pldistro:.%{pldistro}}%{?date:.%{date}}
+%define release 6%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
 Summary: CoDemux - HTTP port DeMux
 Name: %{name} 
