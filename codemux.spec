@@ -14,7 +14,7 @@ Packager: PlanetLab Central <support@planet-lab.org>
 Distribution: PlanetLab 3.0
 URL: http://codeen.cs.princeton.edu/
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires: vnet
+#Requires: vnet
 
 %description
 codemux is a privileged port (80) sharing service that passes traffic to and from slices via localhost ports.
