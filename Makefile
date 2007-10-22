@@ -8,7 +8,7 @@ all: ${TARGS}
 clean:
 	rm -f ${TARGS} *.o *~
 
-SHARED_OBJ = codemuxlib.o
+SHARED_OBJ = codemuxlib.o debug.o
 
 CODEMUX_OBJ = codemux.o ${SHARED_OBJ}
 

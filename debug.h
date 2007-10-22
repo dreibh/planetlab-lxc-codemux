@@ -10,19 +10,19 @@
   TRACE1 : print "buf" whose size is "size"
 */
 
-#define DEBUG
-
-// extern HANDLE hdebugLog;
-// extern int defaultTraceSync;
-#define TRACE0(fmt, msg...) {                                             \
-       char __buf[2048];                                                  \
-       if (hdebugLog) {                                                   \
-          snprintf(__buf, sizeof(__buf), fmt, ##msg);                     \
-          WriteLog(hdebugLog, __buf, strlen(__buf), defaultTraceSync);    \
-       }                                                                  \
+//#define DEBUG
+#ifdef DEBUG
+extern HANDLE hdebugLog;
+extern int defaultTraceSync;
+#define TRACE0(fmt, msg...) {                                              \
+       char __buf[2048];                                                   \
+       if (hdebugLog) {                                                    \
+          snprintf(__buf, sizeof(__buf), fmt, ##msg);                      \
+          WriteLog(hdebugLog, __buf, strlen(__buf), defaultTraceSync);     \
+       }                                                                   \
 }          
-#define TRACE1(buf, size) {                                 \
-       WriteLog(hdebugLog, buf, size, defaultTraceSync);    \
+#define TRACE1(buf, size) {                                                \
+       WriteLog(hdebugLog, buf, size, defaultTraceSync);                   \
 }
 #define TRACE(fmt, msg...) {                                               \
        char __buf[2048];                                                   \
@@ -38,20 +38,11 @@
          WriteLog(hdebugLog, __buf, strlen(__buf), defaultTraceSync);      \
        }						                   \
 }                                                                  
-
-#ifndef HERE
-#define HERE TRACE("file %s, line %d, func %s\n", __FILE__, __LINE__, __FUNCTION__)
-#endif
-
-#ifdef DEBUG
-#define ASSERT(exp) {                                         \
-  if (!(exp)) {                                               \
-    TRACE("ASSERTION (%s) FAILED in %s (%s:%d)\n",            \
-	 (#exp), __FUNCTION__, __FILE__, __LINE__);           \
-  }                                                           \
-}
 #else
-#define ASSERT(exp)         1 ? (void)0 : (exp)
+#define TRACE0(fmt, msg...) (void)0
+#define TRACE1(fmt, msg...) (void)0
+#define TRACE(fmt, msg...)  (void)0
+#define TRACEX(fmt)         (void)0
 #endif // DEBUG
 
 /*--------------------------------------------------------------
@@ -71,11 +62,15 @@
 
 #else
 
+#ifndef DEBUG
+#error "define DEBUG first to make DEBUG_MEMORY_LEAK work"
+#endif
+
 #define xcalloc(nmemb, size) dbgcalloc(nmemb, size, __FUNCTION__, \
                                       __FILE__, __LINE__)
-#define xmalloc(size)        dbgmalloc(size, __FUNCTION__,\
+#define xmalloc(size)        dbgmalloc(size, __FUNCTION__,        \
                                        __FILE__, __LINE__)
-#define xrealloc(ptr, size)  dbgrealloc(ptr, size, __FUNCTION__,\
+#define xrealloc(ptr, size)  dbgrealloc(ptr, size, __FUNCTION__,  \
                                         __FILE__, __LINE__)
 #define xstrdup(s)           dbgstrdup(s, __FUNCTION__, __FILE__, __LINE__)
 #define xfree(ptr)           dbgfree(ptr, __FUNCTION__, __FILE__, __LINE__)

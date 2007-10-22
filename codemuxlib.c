@@ -10,8 +10,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
-#include "debug.h"
 #include "codemuxlib.h"
+#include "debug.h"
 
 /*-----------------------------------------------------------------*/
 static char *
@@ -270,4 +270,256 @@ NiceExitBack(int val, char *reason, char *file, int line)
   sprintf(buf, "[%s, %d] %.24s %s\n", file, line, ctime(&currT), reason);
   fprintf(stderr, "%s", buf);
   exit(val);
+}
+/*-----------------------------------------------------------------*/
+/* Logging & Trace support */
+
+/* buffer threshold : when the size hits this value, it flushes its content
+   to the file  */
+#define LOG_BYTES_THRESHOLD (32*1024)
+
+/* this flag indicates that it preserves the base file name for the current
+   one, and changes its name when it actually closes it off */
+#define CHANGE_FILE_NAME_ON_SAVE 0x01 
+
+/* size of the actual log buffer */
+#define LOG_BYTES_MAX       (2*LOG_BYTES_THRESHOLD)
+
+/* log/trace book keeping information */
+typedef struct ExtendedLog {
+  char buffer[LOG_BYTES_MAX]; /* 64 KB */
+  int  bytes;           /* number of bytes written */
+  int  filesize;        /* number of bytes written into this file so far */
+  int  fd;              /* file descriptor */
+  char* sig;            /* base file name */
+  int flags;            /* flags */
+  time_t nextday;
+} ExtendedLog, *PExtendedLog;
+
+/* maximum single file size */
+int maxSingleLogSize = 100 * (1024*1024);
+
+static time_t
+GetNextLogFileName(char* file, int size, const char* sig)
+{
+#define COMPRESS_EXT1 ".bz2"
+#define COMPRESS_EXT2 ".gz"
+
+  struct tm cur_tm;
+  time_t cur_t;
+  int idx = 0;
+
+  cur_t = time(NULL);
+  cur_tm = *gmtime(&cur_t);
+
+  for (;;) {
+    /* check if .bz2 exists */
+    snprintf(file, size, "%s.%04d%02d%02d_%03d%s", 
+	     sig, cur_tm.tm_year+1900, cur_tm.tm_mon+1, cur_tm.tm_mday, 
+	     idx, COMPRESS_EXT1);
+
+    if (access(file, F_OK) == 0) {
+      idx++;
+      continue;
+    }
+
+    /* check if .gz exists */
+    snprintf(file, size, "%s.%04d%02d%02d_%03d%s", 
+	     sig, cur_tm.tm_year+1900, cur_tm.tm_mon+1, cur_tm.tm_mday, 
+	     idx++, COMPRESS_EXT2);
+
+    if (access(file, F_OK) == 0) 
+      continue;
+
+    /* strip the extension and see if the (uncompressed) file exists */
+    file[strlen(file) - sizeof(COMPRESS_EXT2) + 1] = 0;
+    if (access(file, F_OK) != 0)
+      break;
+  }
+  
+  /* calculate & return the next day */
+  cur_t -= (3600*cur_tm.tm_hour + 60*cur_tm.tm_min + cur_tm.tm_sec);
+  return cur_t + 60*60*24;
+
+#undef COMPRESS_EXT1
+#undef COMPRESS_EXT2
+}
+/*-----------------------------------------------------------------*/
+static void
+FlushBuffer(HANDLE file) 
+{
+  /* write data into the file */
+  ExtendedLog* pel = (ExtendedLog *)file;
+  int written;
+
+  if (pel == NULL || pel->fd < 0)
+    return;
+  
+  if ((written = write(pel->fd, pel->buffer, pel->bytes)) > 0) {
+    pel->bytes -= written;
+
+    /* if it hasn't written all data, then we need to move memory */
+    if (pel->bytes > 0) 
+      memmove(pel->buffer, pel->buffer + written, pel->bytes);
+    pel->buffer[pel->bytes] = 0;
+    pel->filesize += written;
+  }
+  
+  /* if the filesize is bigger than maxSignleLogSize, then close it off */
+  if (pel->filesize >= maxSingleLogSize) 
+    OpenLogF(file);
+}
+
+/*-----------------------------------------------------------------*/
+HANDLE
+CreateLogFHandle(const char* signature, int change_file_name_on_save)
+{
+  ExtendedLog* pel;
+  char *temp;
+
+  /* check if the file can be created */
+  if ((temp = strrchr(signature, '/')) != NULL) {
+    int dirlen = temp - signature + 1;
+    char pardir[dirlen+1];
+
+    memcpy(pardir, signature, dirlen);
+    pardir[dirlen] = 0;
+    if (access(pardir, W_OK) != 0) 
+      return NULL;
+  } else {
+    /* assume it's the current directory */
+    if (access("./", W_OK) != 0) 
+      return NULL;
+  }
+
+  if ((pel = (ExtendedLog *)xcalloc(1, sizeof(ExtendedLog))) == NULL)
+    NiceExit(-1, "failed");
+
+  pel->fd = -1;
+  pel->sig = xstrdup(signature);
+  if (pel->sig == NULL)
+    NiceExit(-1, "signature copying failed");
+  if (change_file_name_on_save)
+    pel->flags |= CHANGE_FILE_NAME_ON_SAVE;
+
+  return pel;
+}
+
+
+/*-----------------------------------------------------------------*/
+int
+OpenLogF(HANDLE file)
+{
+  char filename[1024];
+  ExtendedLog* pel = (ExtendedLog *)file;
+
+  if (pel == NULL)
+    return -1;
+
+  if (pel->fd != -1) 
+    close(pel->fd);
+
+  pel->nextday = GetNextLogFileName(filename, sizeof(filename), pel->sig);
+
+  /* change the file name only at saving time 
+     use pel->sig as current file name         */
+  if (pel->flags & CHANGE_FILE_NAME_ON_SAVE) {
+    if (access(pel->sig, F_OK) == 0) 
+      rename(pel->sig, filename);
+    strcpy(filename, pel->sig);
+  }
+
+  /* file opening */
+  if ((pel->fd = open(filename, O_RDWR | O_CREAT | O_APPEND, 
+		      S_IRUSR | S_IWUSR)) == -1) {
+    char errMessage[2048];
+    sprintf(errMessage, "couldn't open the extended log file %s\n", filename);
+    NiceExit(-1, errMessage);
+  }
+
+  /* reset the file size */
+  pel->filesize = 0;
+  return 0;
+}
+
+/*-----------------------------------------------------------------*/
+int 
+WriteLog(HANDLE file, const char* data, int size, int forceFlush)
+{
+  ExtendedLog* pel = (ExtendedLog *)file;
+
+  /* if an error might occur, then stop here */
+  if (pel == NULL || pel->fd < 0 || size > LOG_BYTES_MAX)
+    return -1;
+
+  if (data != NULL) {
+    /* flush the previous data, if this data would overfill the buffer */
+    if (pel->bytes + size >= LOG_BYTES_MAX) 
+      FlushBuffer(file);
+
+    /* write into the buffer */
+    memcpy(pel->buffer + pel->bytes, data, size);
+    pel->bytes += size;
+  }
+
+  /* need to flush ? */
+  if ((forceFlush && (pel->bytes > 0)) || (pel->bytes >= LOG_BYTES_THRESHOLD))
+    FlushBuffer(file);
+
+  return 0;
+}
+/*-----------------------------------------------------------------*/
+void
+DailyReopenLogF(HANDLE file) 
+{
+  /* check if current file is a day long,
+     opens another for today's file         */
+  ExtendedLog* pel = (ExtendedLog *)file;
+
+  if (pel && (time(NULL) >= pel->nextday)) {
+    FlushLogF(file);               /* flush */
+    OpenLogF(file);                /* close previous one & reopen today's */
+  }
+}
+/*-----------------------------------------------------------------*/
+int 
+HandleToFileNo(HANDLE file)
+{
+  ExtendedLog* pel = (ExtendedLog *)file;
+
+  return (pel != NULL) ? pel->fd : -1;
+}
+/*-----------------------------------------------------------------*/
+unsigned int 
+HashString(const char *name, unsigned int hash, int endOnQuery, 
+	   int skipLastIfDot)
+{
+  /* if endOnQuery, we stop the hashing when we hit the question mark.
+     if skipLastIfDot, we check the last component of the path to see
+     if it includes a dot, and it so, we skip it. if both are specified,
+     we first try the query, and if that exists, we don't trim the path */
+
+  int i;
+  int len;
+  char *temp;
+
+  if (name == NULL)
+    return 0;
+
+  len = strlen(name);
+  if (endOnQuery && (temp = strchr(name, '?')) != NULL)
+    len = temp - name;
+  else if (skipLastIfDot) {
+    /* first, find last component by searching backward */
+    if ((temp = strrchr(name, '/')) != NULL) {
+      /* now search forward for the dot */
+      if (strchr(temp, '.') != NULL)
+	len = temp - name;
+    }
+  }
+
+  for (i = 0; i < len; i ++)
+    hash += (_rotl(hash, 19) + name[i]);
+
+  return hash;
 }

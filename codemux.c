@@ -14,13 +14,11 @@
 #include <unistd.h>
 #include <string.h>
 #include "codemuxlib.h"
-
-#define DEBUG 0
+#include "debug.h"
 
 #ifdef DEBUG
-#define TRACE(fmt, msg...) fprintf(stderr, "[%s,%d] " fmt, __FUNCTION__, __LINE__, ##msg)
-#else
-#define TRACE(fmt, msg...) (void)0
+HANDLE hdebugLog;
+int defaultTraceSync;
 #endif
 
 #define CONF_FILE "/etc/codemux/codemux.conf"
@@ -174,14 +172,14 @@ GetSliceXids(void)
     int xid;
 
     if ((temp = strchr(line, ':')) == NULL)
-      continue;			/* weird line */
+      goto next_line;			/* weird line */
     *temp = '\0';		/* terminate slice name */
     temp++;
     if ((temp = strchr(temp+1, ':')) == NULL)
-      continue;			/* weird line */
+      goto next_line;	/* weird line */
     if ((xid = atoi(temp+1)) < 1)
-      continue;			/* weird xid */
-
+      goto next_line;	/* weird xid */
+    
     /* we've got a slice name and xid, let's try to match */
     for (i = 0; i < numSlices; i++) {
       if (slices[i].si_xid == 0 &&
@@ -190,6 +188,9 @@ GetSliceXids(void)
 	break;
       }
     }
+  next_line:
+    if (line)
+      xfree(line);
   }
 
   /* assume service 0 is the root service, and don't check it since
@@ -246,11 +247,11 @@ WhichSlicePos(char *slice)
 
   if (numSlices >= numSlicesAlloc) {
     numSlicesAlloc = MAX(8, numSlicesAlloc * 2);
-    slices = realloc(slices, numSlicesAlloc * sizeof(SliceInfo));
+    slices = xrealloc(slices, numSlicesAlloc * sizeof(SliceInfo));
   }
 
   memset(&slices[numSlices], 0, sizeof(SliceInfo));
-  slices[numSlices].si_sliceName = strdup(slice);
+  slices[numSlices].si_sliceName = xstrdup(slice);
   numSlices++;
   return(numSlices-1);
 }
@@ -290,7 +291,7 @@ ReadConfFile(void)
     ServiceSig serv;
     int port;
     if (line != NULL)
-      free(line);
+      xfree(line);
     
     if ((line = GetNextLine(f)) == NULL)
       break;
@@ -317,7 +318,7 @@ ReadConfFile(void)
     }
     if (num >= numAlloc) {
       numAlloc = MAX(numAlloc * 2, 8);
-      servs = realloc(servs, numAlloc * sizeof(ServiceSig));
+      servs = xrealloc(servs, numAlloc * sizeof(ServiceSig));
     }
     serv.ss_slicePos = WhichSlicePos(serv.ss_slice);
     if (slices[serv.ss_slicePos].si_inUse == 0 &&
@@ -338,10 +339,10 @@ ReadConfFile(void)
   }
 
   for (i = 0; i < numServices; i++) {
-    free(serviceSig[i].ss_host);
-    free(serviceSig[i].ss_slice);
+    xfree(serviceSig[i].ss_host);
+    xfree(serviceSig[i].ss_slice);
   }
-  free(serviceSig);
+  xfree(serviceSig);
   serviceSig = servs;
   numServices = num;
   confFileReadTime = statBuf.st_mtime;
@@ -680,7 +681,7 @@ SocketReadyToRead(int fd)
   }
 
   if ((fb = si->si_readBuf) == NULL) {
-    fb = si->si_readBuf = calloc(1, sizeof(FlowBuf));
+    fb = si->si_readBuf = xcalloc(1, sizeof(FlowBuf));
     fb->fb_refs = 1;
     if (si->si_peerFd >= 0) {
       sockInfo[si->si_peerFd].si_writeBuf = fb;
@@ -689,7 +690,7 @@ SocketReadyToRead(int fd)
   }
 
   if (fb->fb_buf == NULL)
-    fb->fb_buf = malloc(FB_ALLOCSIZE);
+    fb->fb_buf = xmalloc(FB_ALLOCSIZE);
 
   /* determine read buffer size - if 0, then block reads and return */
   if ((spaceLeft = FB_SIZE - fb->fb_used) <= 0) {

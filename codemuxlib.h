@@ -16,19 +16,32 @@
 
 #include "appdef.h"
 
+typedef void* HANDLE;
+
 /* stripped version of applib.c for codemux */
 
-char *GetNextLine(FILE *file);
-int   WordCount(char *buf);
-char *GetField(const char *start, int whichField);
-char *GetWord(const char *start, int whichWord);
-int   DoesDotlessSuffixMatch(char *start, int len, char *suffix);
-int   CreatePrivateAcceptSocket(int portNum, int nonBlocking);
-char *StrdupLower(const char *orig);
-void  StrcpyLower(char *dest, const char *src);
+extern char *GetNextLine(FILE *file);
+extern int   WordCount(char *buf);
+extern char *GetField(const char *start, int whichField);
+extern char *GetWord(const char *start, int whichWord);
+extern int   DoesDotlessSuffixMatch(char *start, int len, char *suffix);
+extern int   CreatePrivateAcceptSocket(int portNum, int nonBlocking);
+extern char *StrdupLower(const char *orig);
+extern void  StrcpyLower(char *dest, const char *src);
+
+extern int OpenLogF(HANDLE file);
+extern int WriteLog(HANDLE file, const char* data, int size, int forceFlush);
+extern void DailyReopenLogF(HANDLE file);
+extern unsigned int HashString(const char *name, unsigned int hash, 
+			       int endOnQuery, int skipLastIfDot);
+
+#define FlushLogF(h)  WriteLog(h, NULL, 0, TRUE)
+
+#define MASK 0xFFFFFFFF
+#define _rotl(Val, Bits) ((((Val)<<(Bits)) | (((Val) & MASK)>>(32 - (Bits)))) & MASK)
 
 /* nice exit support */
-void  NiceExitBack(int val, char *reason, char *file, int line);
+extern void  NiceExitBack(int val, char *reason, char *file, int line);
 #define NiceExit(val, reason) NiceExitBack(val, reason, __FILE__, __LINE__)
 
 
