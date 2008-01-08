@@ -1,6 +1,13 @@
+#
+# $Id$
+#
+%define url $URL$
+
 %define name codemux 
 %define version 0.1
-%define release 7%{?pldistro:.%{pldistro}}%{?date:.%{date}}
+%define taglevel 7
+
+%define release %{taglevel}%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
 Summary: CoDemux - HTTP port DeMux
 Name: %{name} 
@@ -11,8 +18,9 @@ Group: System Environment/Base
 Source: %{name}-%{version}.tar.gz
 Vendor: PlanetLab
 Packager: PlanetLab Central <support@planet-lab.org>
-Distribution: PlanetLab 3.0
-URL: http://codeen.cs.princeton.edu/
+Distribution: PlanetLab %{plrelease}
+URL: %(echo %{url} | cut -d ' ' -f 2)
+#URL: http://codeen.cs.princeton.edu/
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 #Requires: vnet
 
