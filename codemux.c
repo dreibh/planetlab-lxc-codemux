@@ -37,8 +37,8 @@ int defaultTraceSync;
    among them */
 #define FAIRNESS_CUTOFF (MAX_CONNS * 0.85)
 
-/* codemux version */
-#define CODEMUX_VERSION "0.4"
+/* codemux version, from Makefile, or specfile */
+#define CODEMUX_VERSION RPM_VERSION
 
 typedef struct FlowBuf {
   int fb_refs;			/* num refs */

@@ -1,5 +1,7 @@
+# overridden when invoked through rpmbuild
+RPM_VERSION=0.0
 CC = gcc
-CFLAGS = -Wall -O 
+CFLAGS = -Wall -O -DRPM_VERSION=\"$(RPM_VERSION)\"
 
 TARGS = codemux
 
