@@ -38,7 +38,7 @@ int defaultTraceSync;
 #define FAIRNESS_CUTOFF (MAX_CONNS * 0.85)
 
 /* codemux version */
-#define CODEMUX_VERSION "0.3"
+#define CODEMUX_VERSION "0.4"
 
 typedef struct FlowBuf {
   int fb_refs;			/* num refs */
@@ -93,6 +93,9 @@ static int highestSetFd;
 static int numNeedingHeaders;	/* how many conns waiting on headers? */
 
 static int numForks;
+
+/* PLC netflow domain name like netflow.planet-lab.org */
+static char* domainNamePLCNetflow = NULL;
 
 #ifndef SO_SETXID
 #define SO_SETXID SO_PEERCRED
@@ -297,7 +300,7 @@ ReadConfFile(void)
       break;
 
     memset(&serv, 0, sizeof(serv));
-    if (WordCount(line) != 3) {
+    if (WordCount(line) < 3) {
       fprintf(stderr, "bad line: %s\n", line);
       continue;
     }
@@ -310,11 +313,19 @@ ReadConfFile(void)
     serv.ss_host = GetWord(line, 0);
     serv.ss_slice = GetWord(line, 1);
 
-    if (num == 0 && /* the first row must be an entry for apache */
-	(strcmp(serv.ss_host, "*") != 0 ||
-	 strcmp(serv.ss_slice, "root") != 0)) {
-      fprintf(stderr, "first row has to be for webserver\n");
-      exit(-1);
+    if (num == 0) {
+      /* the first row must be an entry for apache */
+      if (strcmp(serv.ss_host, "*") != 0 ||
+	  strcmp(serv.ss_slice, "root") != 0) {
+	fprintf(stderr, "first row has to be for webserver\n");
+	exit(-1);
+      }
+      /* see if there's PLC netflow's domain name */
+      if (domainNamePLCNetflow != NULL) {
+	xfree(domainNamePLCNetflow);
+	domainNamePLCNetflow = NULL;
+      }
+      domainNamePLCNetflow = GetWord(line, 3);
     }
     if (num >= numAlloc) {
       numAlloc = MAX(numAlloc * 2, 8);
@@ -330,12 +341,19 @@ ReadConfFile(void)
 
   fclose(f);
 
+#if 0
+  /* Faiyaz asked me to allow a single-entry codemux conf */
   if (num == 1) {
     if (numServices == 0) {
       fprintf(stderr, "nothing found in codemux.conf\n");
       exit(-1);
     }
     return;
+  }
+#endif
+  if (num < 1) {
+    fprintf(stderr, "no entry found in codemux.conf\n");
+    exit(-1);
   }
 
   for (i = 0; i < numServices; i++) {
@@ -749,6 +767,25 @@ SocketReadyToRead(int fd)
     //    printf("found service %d\n", whichService);
     slice = ServiceToSlice(whichService);
 
+    /* if it needs to be redirected to PLC, let it be handled here */
+    if (whichService == 0 && domainNamePLCNetflow != NULL &&
+	strcmp(slice->si_sliceName, "root") == 0) {
+      char msg[1024];
+      int len;
+      static const char* resp302 = 
+	"HTTP/1.0 302 Found\r\n"
+	"Location: http://%s\r\n"
+	"Cache-Control: no-cache, no-store\r\n"
+	"Content-type: text/html\r\n"
+	"Connection: close\r\n"
+	"\r\n"
+	"Your request is being redirected to PLC Netflow http://%s\n";
+      len = snprintf(msg, sizeof(msg), resp302, 
+		     domainNamePLCNetflow, domainNamePLCNetflow);
+      write(fd, msg, len);
+      CloseSock(fd);
+      return;
+    }
     /* no service can have more than some absolute max number of
        connections. Also, when we're too busy, start enforcing
        fairness across the servers */
