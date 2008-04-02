@@ -37,10 +37,9 @@ make clean
 make RPM_VERSION=%{version}.%{taglevel}
 
 %install
-install -D -m 644 codemux.logrotate $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d/codemux
 rm -rf $RPM_BUILD_ROOT
-
 make INSTALL_ROOT=$RPM_BUILD_ROOT install
+install -D -m 644 codemux.logrotate $RPM_BUILD_ROOT/%{_sysconfdir}/logrotate.d/codemux
 
 %clean
 rm -rf $RPM_BUILD_ROOT
