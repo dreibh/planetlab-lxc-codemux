@@ -49,6 +49,7 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0755,root,root) %{_initrddir}/codemux
 %config /etc/codemux/codemux.conf
 %attr(0755,root,root) /usr/sbin/codemux
+%{_sysconfdir}/logrotate.d/codemux
 
 %post
 chkconfig codemux reset
