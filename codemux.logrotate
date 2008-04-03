@@ -1,7 +1,7 @@
 /var/log/codemux.log {
     copytruncate
     compress
-    daily
+    size 200
     notifempty
     rotate 5
     missingok
