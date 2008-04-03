@@ -1033,18 +1033,7 @@ static int
 OpenLogFile(void)
 {
   static const char* logfile = "/var/log/codemux.log";
-  static const char* oldlogfile = "/var/log/codemux.log.old";
   int logfd;
-
-  /* if the previous log file exists,
-     rename it to the oldlogfile */
-  if (access(logfile, F_OK) == 0) {
-    if (rename(logfile, oldlogfile) < 0) {
-      fprintf(stderr, "cannot rotate the logfile err=%s\n",
-	      strerror(errno));
-      exit(-1);
-    }
-  }
 
   logfd = open(logfile, O_WRONLY | O_APPEND | O_CREAT, 0600);
   if (logfd < 0) {
