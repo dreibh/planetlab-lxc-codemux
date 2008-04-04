@@ -5,7 +5,7 @@
 
 %define name codemux 
 %define version 0.1
-%define taglevel 10
+%define taglevel 9
 
 %define release %{taglevel}%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
