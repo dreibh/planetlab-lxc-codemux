@@ -5,7 +5,7 @@
 
 %define name codemux 
 %define version 0.1
-%define taglevel 9
+%define taglevel 10
 
 %define release %{taglevel}%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
@@ -70,6 +70,11 @@ if [ "$1" = 0 ]; then
 fi
 
 %changelog
+* Thu Apr 24 2008 Faiyaz Ahmed <faiyaza@cs.princeton.edu> - CoDemux-0.1-10
+- 
+- Examples in conf file are enough.  Removed PLC specific entries.
+- 
+
 * Fri Mar 28 2008 Faiyaz Ahmed <faiyaza@cs.princeton.edu> - CoDemux-0.1-7 CoDemux-0.1-8
 - 
 
