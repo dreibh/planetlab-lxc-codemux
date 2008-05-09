@@ -34,7 +34,8 @@ case "$1" in
             rm -f $pidfile
         fi
 
-        initlog -c /usr/sbin/codemux
+        #initlog -c /usr/sbin/codemux # Depricated
+		/usr/sbin/codemux
 
         cmd=success
         check_status && touch /var/lock/subsys/$PROC || cmd=failure
