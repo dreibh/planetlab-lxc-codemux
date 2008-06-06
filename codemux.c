@@ -457,7 +457,7 @@ static int
 FindService(FlowBuf *fb, int *whichService, struct in_addr addr)
 {
   char *end;
-  char *lowerBuf;
+  char lowerBuf[FB_ALLOCSIZE];
   char *hostVal;
   char *buf = fb->fb_buf;
   char orig[256];
@@ -466,7 +466,7 @@ FindService(FlowBuf *fb, int *whichService, struct in_addr addr)
   int i;
   int len;
 #endif
-    
+
   if (strstr(buf, "\n\r\n") == NULL && strstr(buf, "\n\n") == NULL)
     return(FAILURE);
 
@@ -475,7 +475,7 @@ FindService(FlowBuf *fb, int *whichService, struct in_addr addr)
   fb->fb_used += InsertHeader(buf, fb->fb_used + 1, orig);
     
   /* get just the header, so we can work on it */
-  LOCAL_STR_DUP_LOWER(lowerBuf, buf);
+  StrcpyLower(lowerBuf, buf);
   if ((end = strstr(lowerBuf, "\n\r\n")) == NULL)
     end = strstr(lowerBuf, "\n\n");
   *end = '\0';
@@ -503,7 +503,6 @@ FindService(FlowBuf *fb, int *whichService, struct in_addr addr)
 	    DoesDotlessSuffixMatch(hostVal, 0, serviceSig[i].ss_host)) {
 	  *whichService = i;
 	  free(hostVal);
-	  /* printf("%s", buf); */
 	  return(SUCCESS);
 	}
       }
