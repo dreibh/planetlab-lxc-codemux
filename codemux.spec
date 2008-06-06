@@ -5,7 +5,7 @@
 
 %define name codemux 
 %define version 0.1
-%define taglevel 11
+%define taglevel 12
 
 %define release %{taglevel}%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
@@ -70,6 +70,11 @@ if [ "$1" = 0 ]; then
 fi
 
 %changelog
+* Fri Jun 06 2008 Stephen Soltesz <soltesz@cs.princeton.edu> - CoDemux-0.1-12
+- 
+- KyoungSoo added fix to prevent failure with new compilers
+- 
+
 * Fri May 09 2008 Stephen Soltesz <soltesz@cs.princeton.edu> - CoDemux-0.1-11
 - 
 
