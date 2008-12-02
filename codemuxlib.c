@@ -168,7 +168,7 @@ GetWord(const char *start, int whichWord)
 }
 /*-----------------------------------------------------------------*/
 static int 
-CreatePrivateAcceptSocketEx(int portNum, int nonBlocking, int loopbackOnly)
+CreatePrivateAcceptSocketEx(int portNum, int nonBlocking, struct in_addr *addr)
 {
   int doReuse = 1;
   struct linger doLinger;
@@ -205,8 +205,7 @@ CreatePrivateAcceptSocketEx(int portNum, int nonBlocking, int loopbackOnly)
   /* set up info for binding listen */
   memset(&sa, 0, sizeof(sa));
   sa.sin_family = AF_INET;
-  sa.sin_addr.s_addr = (loopbackOnly) ? htonl(INADDR_LOOPBACK) 
-                                      : htonl(INADDR_ANY);
+  sa.sin_addr = *addr;
   sa.sin_port = htons(portNum);
 
   /* bind the sock */
@@ -225,9 +224,9 @@ CreatePrivateAcceptSocketEx(int portNum, int nonBlocking, int loopbackOnly)
 }
 /*-----------------------------------------------------------------*/
 int
-CreatePrivateAcceptSocket(int portNum, int nonBlocking)
+CreatePrivateAcceptSocket(int portNum, int nonBlocking, struct in_addr *addr)
 {
-  return CreatePrivateAcceptSocketEx(portNum, nonBlocking, FALSE);
+  return CreatePrivateAcceptSocketEx(portNum, nonBlocking, addr);
 }
 /*-----------------------------------------------------------------*/
 char *

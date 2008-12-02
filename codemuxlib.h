@@ -25,7 +25,7 @@ extern int   WordCount(char *buf);
 extern char *GetField(const char *start, int whichField);
 extern char *GetWord(const char *start, int whichWord);
 extern int   DoesDotlessSuffixMatch(char *start, int len, char *suffix);
-extern int   CreatePrivateAcceptSocket(int portNum, int nonBlocking);
+extern int   CreatePrivateAcceptSocket(int portNum, int nonBlocking, struct in_addr *addr);
 extern char *StrdupLower(const char *orig);
 extern void  StrcpyLower(char *dest, const char *src);
 

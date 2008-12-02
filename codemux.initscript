@@ -12,6 +12,8 @@ RETVAL=0
 
 pidfile=/var/run/$PROC.pid
 
+[ -r /etc/sysconfig/codemux ] && . /etc/sysconfig/codemux
+
 check_status() {
     pid=`cat $pidfile 2>/dev/null`
     #
@@ -35,7 +37,7 @@ case "$1" in
         fi
 
         #initlog -c /usr/sbin/codemux # Depricated
-		/usr/sbin/codemux
+		/usr/sbin/codemux $CODEMUX_OPTS
 
         cmd=success
         check_status && touch /var/lock/subsys/$PROC || cmd=failure

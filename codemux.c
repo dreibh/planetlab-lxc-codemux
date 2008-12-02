@@ -1063,9 +1063,29 @@ main(int argc, char *argv[])
 {
   int lisSock;
   int logFd;
+  int doDaemon = 1;
+  int opt;
+  struct in_addr lisAddress = { .s_addr = htonl(INADDR_ANY) };
+
+  while ((opt = getopt(argc, argv, "dl:")) != -1) {
+    switch (opt) {
+      case 'd':
+	doDaemon = 0;
+	break;
+      case 'l':
+	if (inet_pton(AF_INET, optarg, &lisAddress) <= 0) {
+	  fprintf(stderr, "`%s' is not a valid address\n", optarg);
+	  exit(-1);
+	}
+	break;
+      default:
+	fprintf(stderr, "Usage: %s [-d] [-l <listening address>]\n", argv[0]);
+	exit(-1);
+    }
+  }
 
   /* do the daemon stuff */
-  if (argc <= 1 || strcmp(argv[1], "-d") != 0) {
+  if (doDaemon) {
     if (InitDaemon() < 0) {
       fprintf(stderr, "codemux daemon_init() failed\n");
       exit(-1);
@@ -1073,7 +1093,8 @@ main(int argc, char *argv[])
   }
 
   /* create the accept socket */
-  if ((lisSock = CreatePrivateAcceptSocket(DEMUX_PORT, TRUE)) < 0) {
+  if ((lisSock = CreatePrivateAcceptSocket(DEMUX_PORT, TRUE,
+					   &lisAddress)) < 0) {
     fprintf(stderr, "failed creating accept socket\n");
     exit(-1);
   }
