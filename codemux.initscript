@@ -65,8 +65,16 @@ case "$1" in
             echo 'not running' && exit 1
         ;;
 
+    condrestart)
+	if test -f /var/lock/subsys/$PROC; then
+	    $0 stop
+	    $0 start
+	    RETVAL=$?
+	fi
+	;;
+
     *)
-        echo "Usage: $0 {start|stop|restart|status}"
+        echo "Usage: $0 {start|stop|restart|status|condrestart}"
         RETVAL=1
 esac
 

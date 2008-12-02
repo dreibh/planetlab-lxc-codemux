@@ -47,15 +47,15 @@ rm -rf $RPM_BUILD_ROOT
 %files
 %defattr(0644,root,root)
 %attr(0755,root,root) %{_initrddir}/codemux
-%config /etc/codemux/codemux.conf
+%config(noreplace) /etc/codemux/codemux.conf
 %attr(0755,root,root) /usr/sbin/codemux
 %{_sysconfdir}/logrotate.d/codemux
 
 %post
-chkconfig codemux reset
+chkconfig --add codemux
 
 if [ -z "$PL_BOOTCD" ]; then
-    /etc/init.d/codemux restart
+    /etc/init.d/codemux condrestart
 fi
 
 %preun
