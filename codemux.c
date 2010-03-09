@@ -64,6 +64,7 @@ typedef struct ServiceSig {
   char *ss_host;		/* suffix in host */
   char *ss_slice;
   short ss_port;
+  char *ss_ip;
   int ss_slicePos;		/* position in slices array */
 } ServiceSig;
 
@@ -312,6 +313,7 @@ ReadConfFile(void)
 
     serv.ss_host = GetWord(line, 0);
     serv.ss_slice = GetWord(line, 1);
+    serv.ss_ip = GetWord(line, 3);
 
     if (num == 0) {
       /* the first row must be an entry for apache */
@@ -358,6 +360,7 @@ ReadConfFile(void)
 
   for (i = 0; i < numServices; i++) {
     xfree(serviceSig[i].ss_host);
+    xfree(serviceSig[i].ss_ip);
     xfree(serviceSig[i].ss_slice);
   }
   xfree(serviceSig);
@@ -566,8 +569,12 @@ StartConnect(int origFD, int whichService)
   memset(&dest, 0, sizeof(dest));
   dest.sin_family = AF_INET;
   dest.sin_port = htons(serviceSig[whichService].ss_port);
-  dest.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-  
+  if (serviceSig[whichService].ss_ip != NULL) {
+  	dest.sin_addr.s_addr = inet_addr(serviceSig[whichService].ss_ip);
+  } else {
+  	dest.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  }
+
   /* start connection process - we should be told that it's in
      progress */
   if (connect(sock, (struct sockaddr *) &dest, sizeof(dest)) != -1 || 
