@@ -5,7 +5,7 @@
 
 %define name codemux 
 %define version 0.1
-%define taglevel 13
+%define taglevel 14
 
 %define release %{taglevel}%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
@@ -70,6 +70,9 @@ if [ "$1" = 0 ]; then
 fi
 
 %changelog
+* Tue Mar 09 2010 S.Çağlar Onur <caglar@cs.princeton.edu> - CoDemux-0.1-14
+- introduce an IP field
+
 * Tue Dec 02 2008 Daniel Hokka Zakrisson <daniel@hozac.com> - CoDemux-0.1-13
 - Add condrestart to the initscript and add a way to limit codemux to one IP.
 
