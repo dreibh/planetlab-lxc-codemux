@@ -1,8 +1,3 @@
-#
-# $Id$
-#
-%define url $URL$
-
 %define name codemux 
 %define version 0.1
 %define taglevel 14
@@ -19,7 +14,7 @@ Source: %{name}-%{version}.tar.gz
 Vendor: PlanetLab
 Packager: PlanetLab Central <support@planet-lab.org>
 Distribution: PlanetLab %{plrelease}
-URL: %(echo %{url} | cut -d ' ' -f 2)
+URL: %{SCMURL}
 #URL: http://codeen.cs.princeton.edu/
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 #Requires: vnet
