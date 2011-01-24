@@ -1,6 +1,6 @@
 %define name codemux 
 %define version 0.1
-%define taglevel 14
+%define taglevel 15
 
 %define release %{taglevel}%{?pldistro:.%{pldistro}}%{?date:.%{date}}
 
@@ -65,6 +65,9 @@ if [ "$1" = 0 ]; then
 fi
 
 %changelog
+* Mon Jan 24 2011 Thierry Parmentelat <thierry.parmentelat@sophia.inria.fr> - codemux-0.1-15
+- no semantic change - just fixed specfile for git URL
+
 * Tue Mar 09 2010 S.Çağlar Onur <caglar@cs.princeton.edu> - CoDemux-0.1-14
 - introduce an IP field
 
